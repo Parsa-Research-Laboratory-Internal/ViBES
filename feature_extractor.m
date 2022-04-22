@@ -1,5 +1,5 @@
 function [] = feature_extractor(params)
-% grab the parameters
+% grab the parametersh
 %video - these are needed for saving the loaded video
 pixel_resolution_static = params.video.pixel_resolution_static; %degrees
 pixel_resolution_motion = params.video.pixel_resolution_motion; %degrees
