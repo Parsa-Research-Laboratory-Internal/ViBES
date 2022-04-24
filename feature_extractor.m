@@ -194,8 +194,8 @@ else
                 circ_filter_surround = fspecial('disk',motion_surround_size_pix);
             end
 
-            f_center_filtered = roifilt2(circ_filter_center, single(frames_diff(:,:,i)), motion_feature_mask);
-            f_surround_filtered = roifilt2(circ_filter_surround, single(frames_diff(:,:,i)), motion_feature_mask);
+            f_center_filtered = roifilt2(circ_filter_center, single(abs(frames_diff(:,:,i))), motion_feature_mask);
+            f_surround_filtered = roifilt2(circ_filter_surround, single(abs(frames_diff(:,:,i))), motion_feature_mask);
             for j=1:N_motion_units
                 x = round(posX(j));
                 y = round(posY(j));
