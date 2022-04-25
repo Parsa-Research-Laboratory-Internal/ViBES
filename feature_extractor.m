@@ -70,16 +70,16 @@ else
     degrees_per_pixel = video_degrees_visual_angle / v.Width;
 
     resize_factor_static = degrees_per_pixel / pixel_resolution_static;
-    h_static = round(v.Height*resize_factor_static);
-    w_static = round(v.Width*resize_factor_static);
+    h_static = ceil(v.Height*resize_factor_static);
+    w_static = ceil(v.Width*resize_factor_static);
 
     resize_factor_motion = degrees_per_pixel / pixel_resolution_motion;
-    h_motion = round(v.Height*resize_factor_motion);
-    w_motion = round(v.Width*resize_factor_motion);
+    h_motion = ceil(v.Height*resize_factor_motion);
+    w_motion = ceil(v.Width*resize_factor_motion);
 
     resize_factor_motion_feature = round(feature_spacing_motion / pixel_resolution_motion);
-    h_motion_feature = round(h_motion/resize_factor_motion_feature);
-    w_motion_feature = round(w_motion/resize_factor_motion_feature);
+    h_motion_feature = ceil(h_motion/resize_factor_motion_feature);
+    w_motion_feature = ceil(w_motion/resize_factor_motion_feature);
 
     frames_static = zeros(h_static,w_static,v.NumFrames,'uint8');
     frames_diff = zeros(h_motion,w_motion,v.NumFrames,'int8');
@@ -103,7 +103,7 @@ else
 
     save(saved_frames_fname, 'frames_static', 'frames_diff', ...
         'resize_factor_static', 'resize_factor_motion', 'resize_factor_motion_feature', ...
-        "h_motion_feature",'w_motion_feature');
+        "h_motion_feature",'w_motion_feature','-v7.3');
     video_params = params.video;
     save(saved_video_params_fname, 'video_params');
 end
