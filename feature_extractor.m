@@ -1,5 +1,5 @@
 function [] = feature_extractor(params)
-% grab the parametersh
+% grab the parameters
 %video - these are needed for saving the loaded video
 pixel_resolution_static = params.video.pixel_resolution_static; %degrees
 pixel_resolution_motion = params.video.pixel_resolution_motion; %degrees
@@ -20,6 +20,9 @@ motion_feature_RF_center = params.features.motion_feature_RF_center;
 motion_feature_RF_surround = params.features.motion_feature_RF_surround;
 motion_surround_weight = params.features.motion_surround_weight;
 OMS_threshold_frac = params.features.OMS_threshold_frac;
+loom_threshold_frac = params.features.loom_threshold_frac;
+LD_contrast_thres_frac = params.features.LD_contrast_thres_frac;
+DVS_contrast_thres_frac = params.features.DVS_contrast_thres_frac;
 features_motion = params.features.features_motion;
 
 all_params_hash = DataHash(params);
@@ -54,9 +57,16 @@ all_params_hash = DataHash(params);
 %video_fname = 'GameRecording_short.mov';
 
 %% Computed parameters
+%contrast_max = 2^7;
 OMS_thres = round(OMS_threshold_frac * contrast_max);
 contrast_thres = round(contrast_thres_frac * contrast_max);
 OS_thres = round(OS_thres_frac * contrast_max);
+LD_contrast_thres = round(LD_contrast_thres_frac * contrast_max);
+DVS_contrast_thres = round(DVS_contrast_thres_frac * contrast_max);
+
+gauss_size_pix = gauss_filter_size_static / pixel_resolution_static;
+motion_center_size_pix = round(motion_feature_RF_center / pixel_resolution_motion);
+motion_surround_size_pix = round(motion_feature_RF_surround/ pixel_resolution_motion);
 
 %% Load video
 saved_frames_fname = sprintf('video_frames%s%s_vidFrames.mat', filesep, video_params_hash);
@@ -104,6 +114,7 @@ else
     save(saved_frames_fname, 'frames_static', 'frames_diff', ...
         'resize_factor_static', 'resize_factor_motion', 'resize_factor_motion_feature', ...
         "h_motion_feature",'w_motion_feature','-v7.3');
+
     video_params = params.video;
     save(saved_video_params_fname, 'video_params');
 end
@@ -129,11 +140,20 @@ else
         motion_feature_mask(round(posX(i)), round(posY(i))) = true;
     end
 
-    %% local mean subtraction and feature computations
+    %make binary mask for each motion unit center
 
-    gauss_size_pix = gauss_filter_size_static / pixel_resolution_static;
-    motion_center_size_pix = round(motion_feature_RF_center / pixel_resolution_motion);
-    motion_surround_size_pix = round(motion_feature_RF_surround/ pixel_resolution_motion);
+    %gauss_size_pix
+    motion_center_mask = false(h_motion, w_motion, N_motion_units);
+    if features_motion.LD
+        [X, Y] = meshgrid(1:w_motion,1:h_motion);
+        for j=1:N_motion_units
+            x = round(posX(j));
+            y = round(posY(j));
+
+            motion_center_mask(:,:,j) = sqrt((X - x).^2 + (Y - y).^2) < gauss_size_pix;
+        end
+    end
+    %% local mean subtraction and feature computations
 
     % orientation
     if features_static.horizontal_orientation || features_static.vertical_orientation
@@ -157,7 +177,7 @@ else
         feature_spikes.(feature_list_motion{i}) = zeros(h_motion_feature,w_motion_feature,frames,'logical');
     end
 
-%    feature_spike_table = table('Size',frames,)
+    %    feature_spike_table = table('Size',frames,)
 
     %feature_spikes = repmat(feature_spikes_template,frames);
 
@@ -196,20 +216,41 @@ else
 
             f_center_filtered = roifilt2(circ_filter_center, single(abs(frames_diff(:,:,i))), motion_feature_mask);
             f_surround_filtered = roifilt2(circ_filter_surround, single(abs(frames_diff(:,:,i))), motion_feature_mask);
+
             for j=1:N_motion_units
                 x = round(posX(j));
                 y = round(posY(j));
                 feature_spikes.OMS(round(x/resize_factor_motion_feature), round(y/resize_factor_motion_feature), i) = ...
                     f_center_filtered(x,y) - ...
                     motion_surround_weight * f_surround_filtered(x,y) > OMS_thres;
+
+            end
+        end
+
+        if features_motion.LD
+            for j=1:N_motion_units
+                x = round(posX(j));
+                y = round(posY(j));
+
+                positive_contrast_pix_count = sum(frames_diff(motion_center_mask(:,:,j)) > LD_contrast_thres,'all');
+                negative_contrast_pix_count = sum(frames_diff(motion_center_mask(:,:,j)) < -LD_contrast_thres, 'all');
+
+                feature_spikes.LD(round(x/resize_factor_motion_feature), round(y/resize_factor_motion_feature), i) = (negative_contrast_pix_count - positive_contrast_pix_count) / sum(motion_center_mask(:,:,j), 'all') > ...
+                    loom_threshold_frac;
+
             end
         end
     end
+
+    if features_motion.DVS
+        feature_spikes.DVS = abs(frames_diff) > DVS_contrast_thres;
+    end
+
     elapsed = toc;
     fprintf('Feature extraction took %f seconds per frame\n', elapsed/frames);
 
     save(saved_feature_spikes_fname,'feature_spikes', 'elapsed')
-    save(saved_feature_params_fname,'params');    
+    save(saved_feature_params_fname,'params');
 end
 
 
