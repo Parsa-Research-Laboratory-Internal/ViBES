@@ -249,7 +249,7 @@ else
     elapsed = toc;
     fprintf('Feature extraction took %f seconds per frame\n', elapsed/frames);
 
-    save(saved_feature_spikes_fname,'feature_spikes', 'elapsed')
+    save(saved_feature_spikes_fname,'feature_spikes', 'elapsed', '-v7.3')
     save(saved_feature_params_fname,'params');
 end
 
