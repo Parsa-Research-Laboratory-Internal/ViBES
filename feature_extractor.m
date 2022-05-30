@@ -111,6 +111,8 @@ else
     fprintf('Movie loaded and resampled (motion) to: %d frames, %d x %d pixels, %d degrees per pixel\n', ...
         v.NumFrames, w_motion, h_motion, pixel_resolution_motion);
 
+    fprintf('Saving movie frames to %s\n', saved_frames_fname);
+
     save(saved_frames_fname, 'frames_static', 'frames_diff', ...
         'resize_factor_static', 'resize_factor_motion', 'resize_factor_motion_feature', ...
         "h_motion_feature",'w_motion_feature','-v7.3');
@@ -123,6 +125,7 @@ end
 [h_motion, w_motion, ~] = size(frames_diff);
 
 %% feature computations
+
 saved_feature_spikes_fname = sprintf('feature_spikes%s%s_spikes.mat', filesep, all_params_hash);
 saved_feature_params_fname = sprintf('feature_spikes%s%s_params.mat', filesep, all_params_hash);
 
@@ -248,7 +251,8 @@ else
 
     elapsed = toc;
     fprintf('Feature extraction took %f seconds per frame\n', elapsed/frames);
-
+    
+    fprintf('Saving feature spikes to %s\n', saved_feature_spikes_fname);
     save(saved_feature_spikes_fname,'feature_spikes', 'elapsed', '-v7.3')
     save(saved_feature_params_fname,'params');
 end
