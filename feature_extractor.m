@@ -153,7 +153,7 @@ else
             x = round(posX(j));
             y = round(posY(j));
 
-            motion_center_mask(:,:,j) = sqrt((X - x).^2 + (Y - y).^2) < gauss_size_pix;
+            motion_center_mask(:,:,j) = sqrt((X - x).^2 + (Y - y).^2) < motion_center_size_pix;
         end
     end
     %% local mean subtraction and feature computations
@@ -229,14 +229,18 @@ else
 
             end
         end
-
+        
+        curFrameDiff = frames_diff(:,:,i);
         if features_motion.LD
             for j=1:N_motion_units
                 x = round(posX(j));
                 y = round(posY(j));
-
-                positive_contrast_pix_count = sum(frames_diff(motion_center_mask(:,:,j)) > LD_contrast_thres,'all');
-                negative_contrast_pix_count = sum(frames_diff(motion_center_mask(:,:,j)) < -LD_contrast_thres, 'all');
+                positive_contrast_pix_count = sum(curFrameDiff(motion_center_mask(:,:,j)) > LD_contrast_thres,'all');
+                negative_contrast_pix_count = sum(curFrameDiff(motion_center_mask(:,:,j)) < -LD_contrast_thres, 'all');
+                %sum(motion_center_mask(:,:,j), 'all')
+%                 if i==149
+%                     keyboard;
+%                 end
 
                 feature_spikes.LD(round(x/resize_factor_motion_feature), round(y/resize_factor_motion_feature), i) = (negative_contrast_pix_count - positive_contrast_pix_count) / sum(motion_center_mask(:,:,j), 'all') > ...
                     loom_threshold_frac;
